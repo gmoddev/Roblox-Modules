@@ -1,0 +1,107 @@
+--[[
+Author:Not_Lowest
+License: See github
+Desc: helper for clearance detection used for ADS (Advanced Door System) a private system in use for many of my games
+4/11/24
+]]
+
+local Teams = game:GetService("Teams")
+local Market = game:GetService("MarketplaceService")
+
+local TeamsLevel = {
+	["Manufacturing Department"] = 8;
+	["Internal Security Department"] = 6;
+	["Mobile Task Force"] = 5;
+	["Engineering Department"] = 5;
+	["Security Department"] = 3;
+	["Scientific Department"] = 3;
+	["Ethics Committee"] = 2;
+	["Medical Department"] = 2;
+	["Foundation Personnel"] = 2;
+	["D Class Personnel"] = 1;
+	["Solitary Confinement"] = 1;
+}
+local Gamepasses = {};
+
+local Groups = {
+	[12325204] = {
+		[2] = 3;
+		[6] = 8;
+	}	
+};
+
+local ClearanceLevels = {
+	[1] = {Name = "Level 0"; img = ""};
+	[2] = {Name = "Level 1"; img = ""};
+	[3] = {Name = "Level 2"; img = ""};
+	[4] = {Name = "Level 3"; img = ""};
+	[5] = {Name = "Level 4"; img = ""};
+	[6] = {Name = "Level 5"; img = ""};
+	[7] = {Name = "Omni Access"; img = ""};
+	[8] = {Name = "Admin"; img = ""};
+}
+
+local function GetClearanceLevel(name: string)
+	for i,v in pairs(ClearanceLevels) do
+		if name == v.Name then
+			return i
+		end
+	end
+end
+
+local function GetAllowedTeams(tab)
+	for i,v in ipairs(tab) do
+		local Teams = {}
+		
+		if v.Value == true then
+			table.insert(Teams,v.Name)
+		end
+
+	end
+end
+
+local function GetMaxClearanceLevel(tab)
+	local OldMaxLevel = 1
+	
+	for i,v in ipairs(tab) do
+		local level = GetClearanceLevel(v.Name)
+		OldMaxLevel = math.max(OldMaxLevel,level)
+	end
+	return OldMaxLevel
+end
+
+local function GetClearance(plr: Player,val)
+	local Level = TeamsLevel[plr.Team.Name] or 1
+
+	for i,v in pairs(Gamepasses) do
+		local OwnsGamepass = Market:UserOwnsGamePassAsync(plr.UserId)
+		local boolcheck = (OwnsGamepass and v.Level > Level) 
+
+		Level = boolcheck and v.Level or Level
+	end
+
+	for i,v in pairs(Groups) do
+		if not plr:IsInGroup(i) then
+			continue
+		end
+		local PlayerRank = plr:GetRankInGroup(i)
+		for rankindex,level in pairs(v) do
+			Level = math.max(Level,level)
+		end
+	end
+	return Level
+end
+
+local function CalcClearance(folder: Folder)
+	local Levels = folder.Levels
+	local Teams = folder.Teams
+	
+	local Level = GetMaxClearanceLevel(Levels:GetChildren())
+	local TeamsAllowed = GetAllowedTeams(Teams:GetChildren())
+end
+
+
+return {
+	CalcClearance,GetClearance,GetMaxClearanceLevel,GetAllowedTeams,GetClearanceLevel
+	
+}
